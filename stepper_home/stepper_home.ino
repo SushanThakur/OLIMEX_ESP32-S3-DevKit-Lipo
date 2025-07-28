@@ -1,8 +1,8 @@
 #include <AccelStepper.h>
 
-#define switchPin 19
-#define dirPin 2
-#define stepPin 15
+#define switchPin 35
+#define dirPin 4
+#define stepPin 3
 
 AccelStepper stepper(AccelStepper::DRIVER, stepPin, dirPin);
 

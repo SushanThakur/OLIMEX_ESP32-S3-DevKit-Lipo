@@ -12,4 +12,4 @@ void setup() {
 
 void loop() {
   stepper.runSpeed(); //This does not block the code
-}
+}   
