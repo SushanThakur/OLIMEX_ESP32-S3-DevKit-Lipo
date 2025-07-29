@@ -23,8 +23,14 @@ const int dir_pins[STEPPER_NUM] = { 4,5,6,7,17,18,8 };
 const int step_pins[STEPPER_NUM] = { 3,9,10,11,12,13,14 };
 const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 
+const int max_shaft_angles[STEPPER_NUM] = {0};
+const int min_shaft_angles[STEPPER_NUM] = {0};
+
 bool stepper_homed[STEPPER_NUM] = {false};
 bool all_homed = false;
+
+int target_shaft_angles[STEPPER_NUM] = {0};
+float target_stepper_steps[STEPPER_NUM] = {0.0};
 
 AccelStepper stepper[STEPPER_NUM] = {
   AccelStepper(AccelStepper::DRIVER, step_pins[0], dir_pins[0]),
@@ -43,6 +49,51 @@ void TCA9548A(uint8_t bus){
   Wire.write(1 << bus);          // send byte to select bus
   Wire.endTransmission();
   Serial.print(bus);
+}
+
+// Fast string-to-integer conversion
+inline int32_t fastAtoi(const char *str) {
+    int32_t val = 0;
+    while (*str >= '0' && *str <= '9') {
+        val = val * 10 + (*str++ - '0');
+    }
+    return val;
+}
+
+void read_angles_serial() {
+  char buffer[128];
+  size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+  buffer[len] = '\0';
+  int index = 0;
+  char *token = strtok(buffer, ",");
+  while (token != NULL && index < STEPPER_NUM ) {
+    float angle = fastAtoi(token);
+    target_shaft_angles[index] = constrain(angle, min_shaft_angles[index], max_shaft_angles[index]);
+    index++;
+    token = strtok(NULL, ",");
+  }
+  if (index != STEPPER_NUM) {
+    Serial.println("DEBUG: ERROR: Incomplete arm position data");
+  }
+}
+
+void shaft_angles_to_steps() {
+  // convert shaft angles to respective stepper steps 
+}
+
+void read_serial() {
+  while(Serial.available() > 0) {
+    char buffer[128];
+    size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+    buffer[len] = '\0';
+    String read_string = String(buffer);
+    read_string.trim();
+
+    if (read_string == "MOVE") {
+      read_angles_serial();
+      shaft_angles_to_steps();
+    }
+  }
 }
 
 void steppers_move_n_check() {
@@ -122,6 +173,6 @@ void setup(){
 }
 
 void loop(){
-  Serial.println("Program Sucessfully entered loop");
-  delay(1000);
+  Serial.println("DEBUG: Program Entered loop()");
+  while(true){}
 }
