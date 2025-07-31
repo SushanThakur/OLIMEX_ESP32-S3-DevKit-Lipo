@@ -19,17 +19,26 @@
 #define STEPPER_RUN_SPEED 1000
 #define STEPPER_ACEL 5000
 
+TaskHandle_t serial_h;
+TaskHandle_t home_steppers_h;
+TaskHandle_t move_steppers_h;
+TaskHandle_t check_angles_h;
+TaskHandle_t grip_control_h;
+
+bool all_homed = false;
+bool stepper_homed[STEPPER_NUM] = {false};
+bool new_pos = false;
+bool grip_update = false;
+
 const int dir_pins[STEPPER_NUM] = { 4,5,6,7,17,18,8 };
 const int step_pins[STEPPER_NUM] = { 3,9,10,11,12,13,14 };
 const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 
-const int max_shaft_angles[STEPPER_NUM] = {0};
-const int min_shaft_angles[STEPPER_NUM] = {0};
+const float max_shaft_angles[STEPPER_NUM] = {0.0};
+const float min_shaft_angles[STEPPER_NUM] = {0.0};
 
-bool stepper_homed[STEPPER_NUM] = {false};
-bool all_homed = false;
 
-int target_shaft_angles[STEPPER_NUM] = {0};
+float target_shaft_angles[STEPPER_NUM] = {0.0};
 float target_stepper_steps[STEPPER_NUM] = {0.0};
 
 AccelStepper stepper[STEPPER_NUM] = {
@@ -60,43 +69,16 @@ inline int32_t fastAtoi(const char *str) {
     return val;
 }
 
-void read_angles_serial() {
-  char buffer[128];
-  size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
-  buffer[len] = '\0';
-  int index = 0;
-  char *token = strtok(buffer, ",");
-  while (token != NULL && index < STEPPER_NUM ) {
-    float angle = fastAtoi(token);
-    target_shaft_angles[index] = constrain(angle, min_shaft_angles[index], max_shaft_angles[index]);
-    index++;
-    token = strtok(NULL, ",");
-  }
-  if (index != STEPPER_NUM) {
-    Serial.println("DEBUG: ERROR: Incomplete arm position data");
-  }
-}
-
 void shaft_angles_to_steps() {
   // convert shaft angles to respective stepper steps 
 }
 
-void read_serial() {
-  while(Serial.available() > 0) {
-    char buffer[128];
-    size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
-    buffer[len] = '\0';
-    String read_string = String(buffer);
-    read_string.trim();
-
-    if (read_string == "MOVE") {
-      read_angles_serial();
-      shaft_angles_to_steps();
-    }
-  }
-}
-
 void steppers_move_n_check() {
+  // Reset stepper_homed array
+  for (int i=0; i<STEPPER_NUM; i++) {
+    stepper_homed[i] = false;
+  }
+
   while (!all_homed) {
     for (int i=0; i<STEPPER_NUM; i++){
       if (!stepper_homed[i]){
@@ -104,9 +86,7 @@ void steppers_move_n_check() {
       }
       if(digitalRead(hall_pins[i]) == HIGH) {
         delayMicroseconds(DEBOUNCE_DELAY_HOME);
-        Serial.println("DEBUG: Switch Triggered Frist Time");
         if(digitalRead(hall_pins[i]) == HIGH) {
-          Serial.println("DEBUG: Switch Triggered Second Time");
           stepper_homed[i] = true;
         }
       }
@@ -120,44 +100,94 @@ void steppers_move_n_check() {
   }
 }
 
-void home_steppers(){
-  Serial.println("DEBUG: Starting Homing");
+/* 
+  =========================
+    TASKS
+  =========================
+*/
 
-  /*
-    
-  */
+void home_steppers_t( void *pvParameters ) {
+  if( !all_homed ){
 
-  steppers_move_n_check();
+    steppers_move_n_check();
 
-  // Reset stepper_homed variable
-  for (int i=0; i<STEPPER_NUM; i++) {
-    stepper_homed[i] = false;
-    stepper[i].setSpeed(-STEPPER_RUN_SPEED); // to make the stepper rotate in opposite direction
-  }
+    // Make the stepper rotate in opposite direction
+    for (int i=0; i<STEPPER_NUM; i++) {
+      stepper[i].setSpeed(-STEPPER_RUN_SPEED); 
+    }
 
-  // Move in opposite direction for 'reverse_interval' time period
-  unsigned long reverse_start_time = millis();
-  while(millis() - reverse_start_time < REVERSE_INTERVAL){
+    // Move in opposite direction for 'reverse_interval' time period
+    unsigned long reverse_start_time = millis();
+    while(millis() - reverse_start_time < REVERSE_INTERVAL){
+      for(int i=0; i<STEPPER_NUM; i++){
+        stepper[i].runSpeed();
+      }
+    }
+
+    steppers_move_n_check();
+
     for(int i=0; i<STEPPER_NUM; i++){
-      stepper[i].runSpeed();
+      stepper[i].setCurrentPosition(0);
+      stepper[i].setAcceleration(STEPPER_ACEL);
     }
   }
-
-  steppers_move_n_check();
-
-  for(int i=0; i<STEPPER_NUM; i++){
-    stepper[i].setCurrentPosition(0);
-    stepper[i].setAcceleration(STEPPER_ACEL);
-  }
-
-  Serial.println("DEBUG: Homing Done");
 }
 
-void update_positions(){};
-void update_angles(){};
-void set_gripper(){};
+void serial_t( void *pvParameters ) {
+  while(Serial.available() > 0) {
+    char buffer[128];
+    size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+    buffer[len] = '\0';
+    String read_string = String(buffer);
+    read_string.trim();
+
+    if (read_string == "MOVE") {
+      // READ ANGLES FROM SERIAL
+      char buffer[128];
+      size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+      buffer[len] = '\0';
+      int index = 0;
+      char *token = strtok(buffer, ",");
+      while (token != NULL && index < STEPPER_NUM ) {
+        float angle = fastAtoi(token);
+        target_shaft_angles[index] = constrain(angle, min_shaft_angles[index], max_shaft_angles[index]);
+        index++;
+        token = strtok(NULL, ",");
+      }
+      if (index != STEPPER_NUM) {
+        Serial.println("DEBUG: ERROR: Incomplete arm position data");
+      }
+      shaft_angles_to_steps();
+      new_pos = true;
+    } 
+    else if (read_string == "HOME") {
+      all_homed = false;
+    }
+  }
+}
+
+void move_steppers_t( void *pvParameters ) {
+  if ( new_pos ){
+    for( int i=0; i<STEPPER_NUM; i++ ){
+      stepper[i].moveTo(target_stepper_steps[i]);
+    }
+    // multi.run();
+    if ( !multi.run() ) {
+      new_pos = false;
+    }
+  }
+}
+
+void check_angles_t( void *pvParameters ) {
+  
+}
+
+void grip_control_t( void *pvParameters ) {
+  
+}
 
 void setup(){
+
   Serial.begin(115200);
 
   for(int i=0; i<STEPPER_NUM; i++){
@@ -169,10 +199,59 @@ void setup(){
     multi.addStepper(stepper[i]);
   }
 
-  Serial.println("DEBUG: Setup Complete");
+  // Task Setup
+  xTaskCreatePinnedToCore (
+    home_steppers_t,
+    "home_steppers_t",
+    10000, // Stack Size
+    NULL,
+    0,
+    &home_steppers_h,
+    0
+  );
+
+  xTaskCreatePinnedToCore (
+    serial_t,
+    "serial_t",
+    10000, // Stack Size
+    NULL,
+    0,
+    &serial_h,
+    0
+  );
+
+  xTaskCreatePinnedToCore (
+    move_steppers_t,
+    "move_steppers_t",
+    10000, // Stack Size
+    NULL,
+    0,
+    &move_steppers_h,
+    0
+  );
+
+  xTaskCreatePinnedToCore (
+    check_angles_t,
+    "check_angles_t",
+    10000, // Stack Size
+    NULL,
+    0,
+    &check_angles_h,
+    1
+  );
+
+  xTaskCreatePinnedToCore (
+    grip_control_t,
+    "grip_control_t",
+    10000, // Stack Size
+    NULL,
+    0,
+    &grip_control_h,
+    1
+  );
+
 }
 
 void loop(){
-  Serial.println("DEBUG: Program Entered loop()");
-  while(true){}
+
 }
