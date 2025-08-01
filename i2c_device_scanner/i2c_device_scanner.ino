@@ -1,7 +1,10 @@
 #include <Wire.h>
 
+#define I2C_SDA 15
+#define I2C_SCL 16
+
 void setup() {
-  Wire.begin();
+  Wire.begin(I2C_SDA, I2C_SCL);
   Serial.begin(115200);
   Serial.println();
   Serial.println("I2C Device Scanner");
