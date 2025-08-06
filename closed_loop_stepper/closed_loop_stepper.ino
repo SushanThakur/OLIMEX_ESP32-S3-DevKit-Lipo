@@ -30,7 +30,7 @@ void step_t(void *pvParameters)
       current_pos = stepper.currentPosition();
       xSemaphoreGive(posMutex);
     }
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    // vTaskDelay(1 / portTICK_PERIOD_MS);
   }
 }
 
