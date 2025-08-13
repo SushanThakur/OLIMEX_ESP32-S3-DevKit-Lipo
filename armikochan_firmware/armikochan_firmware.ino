@@ -25,9 +25,9 @@ TaskHandle_t move_steppers_h;
 TaskHandle_t check_angles_h;
 TaskHandle_t grip_control_h;
 
-bool all_homed = false;
-bool stepper_homed[STEPPER_NUM] = {false};
-bool new_pos = false;
+bool all_homed_flag = false;
+bool stepper_homed_ind_flag[STEPPER_NUM] = {false};
+bool new_pos_flag = false;
 bool grip_update = false;
 
 const int dir_pins[STEPPER_NUM] = { 4,5,6,7,17,18,8 };
@@ -74,27 +74,27 @@ void shaft_angles_to_steps() {
 }
 
 void steppers_move_n_check() {
-  // Reset stepper_homed array
+  // Reset stepper_homed_ind_flag array
   for (int i=0; i<STEPPER_NUM; i++) {
-    stepper_homed[i] = false;
+    stepper_homed_ind_flag[i] = false;
   }
 
-  while (!all_homed) {
+  while (!all_homed_flag) {
     for (int i=0; i<STEPPER_NUM; i++){
-      if (!stepper_homed[i]){
+      if (!stepper_homed_ind_flag[i]){
         stepper[i].runSpeed();
       }
       if(digitalRead(hall_pins[i]) == HIGH) {
         delayMicroseconds(DEBOUNCE_DELAY_HOME);
         if(digitalRead(hall_pins[i]) == HIGH) {
-          stepper_homed[i] = true;
+          stepper_homed_ind_flag[i] = true;
         }
       }
     }
-    all_homed = true;
+    all_homed_flag = true;
     for (int i=0; i<STEPPER_NUM; i++) {
-      if (!stepper_homed[i]) {
-        all_homed = false;
+      if (!stepper_homed_ind_flag[i]) {
+        all_homed_flag = false;
       }
     }
   }
@@ -107,73 +107,79 @@ void steppers_move_n_check() {
 */
 
 void home_steppers_t( void *pvParameters ) {
-  if( !all_homed ){
-
-    steppers_move_n_check();
-
-    // Make the stepper rotate in opposite direction
-    for (int i=0; i<STEPPER_NUM; i++) {
-      stepper[i].setSpeed(-STEPPER_RUN_SPEED); 
-    }
-
-    // Move in opposite direction for 'reverse_interval' time period
-    unsigned long reverse_start_time = millis();
-    while(millis() - reverse_start_time < REVERSE_INTERVAL){
-      for(int i=0; i<STEPPER_NUM; i++){
-        stepper[i].runSpeed();
+  while(true){
+    if( !all_homed_flag ){
+  
+      steppers_move_n_check();
+  
+      // Make the stepper rotate in opposite direction
+      for (int i=0; i<STEPPER_NUM; i++) {
+        stepper[i].setSpeed(-STEPPER_RUN_SPEED); 
       }
-    }
-
-    steppers_move_n_check();
-
-    for(int i=0; i<STEPPER_NUM; i++){
-      stepper[i].setCurrentPosition(0);
-      stepper[i].setAcceleration(STEPPER_ACEL);
+  
+      // Move in opposite direction for 'reverse_interval' time period
+      unsigned long reverse_start_time = millis();
+      while(millis() - reverse_start_time < REVERSE_INTERVAL){
+        for(int i=0; i<STEPPER_NUM; i++){
+          stepper[i].runSpeed();
+        }
+      }
+  
+      steppers_move_n_check();
+  
+      for(int i=0; i<STEPPER_NUM; i++){
+        stepper[i].setCurrentPosition(0);
+        stepper[i].setAcceleration(STEPPER_ACEL);
+      }
     }
   }
 }
 
 void serial_t( void *pvParameters ) {
-  while(Serial.available() > 0) {
-    char buffer[128];
-    size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
-    buffer[len] = '\0';
-    String read_string = String(buffer);
-    read_string.trim();
-
-    if (read_string == "MOVE") {
-      // READ ANGLES FROM SERIAL
+  while(true){
+    while(Serial.available() > 0) {
       char buffer[128];
       size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
       buffer[len] = '\0';
-      int index = 0;
-      char *token = strtok(buffer, ",");
-      while (token != NULL && index < STEPPER_NUM ) {
-        float angle = fastAtoi(token);
-        target_shaft_angles[index] = constrain(angle, min_shaft_angles[index], max_shaft_angles[index]);
-        index++;
-        token = strtok(NULL, ",");
+      String read_string = String(buffer);
+      read_string.trim();
+  
+      if (read_string == "MOVE") {
+        // READ ANGLES FROM SERIAL
+        char buffer[128];
+        size_t len = Serial.readBytesUntil('\n', buffer, sizeof(buffer) - 1);
+        buffer[len] = '\0';
+        int index = 0;
+        char *token = strtok(buffer, ",");
+        while (token != NULL && index < STEPPER_NUM ) {
+          float angle = fastAtoi(token);
+          target_shaft_angles[index] = constrain(angle, min_shaft_angles[index], max_shaft_angles[index]);
+          index++;
+          token = strtok(NULL, ",");
+        }
+        if (index != STEPPER_NUM) {
+          Serial.println("DEBUG: ERROR: Incomplete arm position data");
+        }
+        shaft_angles_to_steps();
+        new_pos_flag = true;
+      } 
+      else if (read_string == "HOME") {
+        all_homed_flag = false;
       }
-      if (index != STEPPER_NUM) {
-        Serial.println("DEBUG: ERROR: Incomplete arm position data");
-      }
-      shaft_angles_to_steps();
-      new_pos = true;
-    } 
-    else if (read_string == "HOME") {
-      all_homed = false;
     }
   }
 }
 
 void move_steppers_t( void *pvParameters ) {
-  if ( new_pos ){
-    for( int i=0; i<STEPPER_NUM; i++ ){
-      stepper[i].moveTo(target_stepper_steps[i]);
-    }
-    // multi.run();
-    if ( !multi.run() ) {
-      new_pos = false;
+  while(true){
+    if ( new_pos_flag ){
+      for( int i=0; i<STEPPER_NUM; i++ ){
+        stepper[i].moveTo(target_stepper_steps[i]);
+      }
+      // multi.run();
+      if ( !multi.run() ) {
+        new_pos_flag = false;
+      }
     }
   }
 }
