@@ -1,3 +1,4 @@
+// Used Libraries
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <Wire.h>
@@ -6,10 +7,11 @@
 #define BAUD 115200
 #define I2C_SDA 15
 #define I2C_SCL 16
+#define AS5600_CLK_SPEED 100000 // 100 kHz
 
 // TIME CONST
 #define DEBOUNCE_DELAY_HOME 100 // In Microseconds
-#define REVERSE_INTERVAL 200 // In Miliseconds
+#define REVERSE_INTERVAL 200  // In Miliseconds
 
 // PHYSICAL CONST
 #define STEPPER_NUM 7
@@ -19,28 +21,33 @@
 #define STEPPER_RUN_SPEED 1000
 #define STEPPER_ACEL 5000
 
+// Task Handlers
 TaskHandle_t serial_h;
 TaskHandle_t home_steppers_h;
 TaskHandle_t move_steppers_h;
 TaskHandle_t check_angles_h;
 TaskHandle_t grip_control_h;
 
+// Flags
 bool all_homed_flag = false;
 bool stepper_homed_ind_flag[STEPPER_NUM] = {false};
 bool new_pos_flag = false;
 bool grip_update = false;
 
+// Pins
 const int dir_pins[STEPPER_NUM] = { 4,5,6,7,17,18,8 };
 const int step_pins[STEPPER_NUM] = { 3,9,10,11,12,13,14 };
 const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 
+// Fixed Params
 const float max_shaft_angles[STEPPER_NUM] = {0.0};
 const float min_shaft_angles[STEPPER_NUM] = {0.0};
 
-
+// Changable Params
 float target_shaft_angles[STEPPER_NUM] = {0.0};
 float target_stepper_steps[STEPPER_NUM] = {0.0};
 
+// Stepper Initial Setup
 AccelStepper stepper[STEPPER_NUM] = {
   AccelStepper(AccelStepper::DRIVER, step_pins[0], dir_pins[0]),
   AccelStepper(AccelStepper::DRIVER, step_pins[1], dir_pins[1]),
@@ -50,9 +57,9 @@ AccelStepper stepper[STEPPER_NUM] = {
   AccelStepper(AccelStepper::DRIVER, step_pins[5], dir_pins[5]),
   AccelStepper(AccelStepper::DRIVER, step_pins[6], dir_pins[6]),
 };
-
 MultiStepper multi;
 
+// TCA9548A multiplexer, bus selecter function
 void TCA9548A(uint8_t bus){
   Wire.beginTransmission(0x70);  // TCA9548A address
   Wire.write(1 << bus);          // send byte to select bus
@@ -69,6 +76,11 @@ inline int32_t fastAtoi(const char *str) {
     return val;
 }
 
+/*
+  =====================
+    Helper Functions
+  =====================
+*/
 void shaft_angles_to_steps() {
   // convert shaft angles to respective stepper steps 
 }
@@ -105,7 +117,6 @@ void steppers_move_n_check() {
     TASKS
   =========================
 */
-
 void home_steppers_t( void *pvParameters ) {
   while(true){
     if( !all_homed_flag ){
@@ -196,6 +207,7 @@ void setup(){
 
   Serial.begin(115200);
 
+  // Stepper Setup
   for(int i=0; i<STEPPER_NUM; i++){
     pinMode(dir_pins[i], OUTPUT);
     pinMode(step_pins[i], OUTPUT);
