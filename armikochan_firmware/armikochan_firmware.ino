@@ -15,6 +15,7 @@
 
 // PHYSICAL CONST
 #define STEPPER_NUM 7
+#define STEPS_PER_REV 800 
 
 // STEPPER PARAM
 #define STEPPER_MAX_SPEED 2000
@@ -42,6 +43,7 @@ const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 // Fixed Params
 const float max_shaft_angles[STEPPER_NUM] = {0.0};
 const float min_shaft_angles[STEPPER_NUM] = {0.0};
+const float reduction_ratios[STEPPER_NUM] = {0.0};
 
 // Changable Params
 float target_shaft_angles[STEPPER_NUM] = {0.0};
