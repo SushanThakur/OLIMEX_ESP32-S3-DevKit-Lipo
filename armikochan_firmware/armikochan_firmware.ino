@@ -48,6 +48,8 @@ const float reduction_ratios[STEPPER_NUM] = {0.0};
 // Changable Params
 float target_shaft_angles[STEPPER_NUM] = {0.0};
 float target_stepper_steps[STEPPER_NUM] = {0.0};
+float currnet_shaft_angles[STEPPER_NUM] = {0.0};
+float current_stepper_angles[STEPPER_NUM] = {0.0};
 
 // Stepper Initial Setup
 AccelStepper stepper[STEPPER_NUM] = {
