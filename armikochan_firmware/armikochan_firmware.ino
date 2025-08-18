@@ -275,5 +275,5 @@ void setup(){
 }
 
 void loop(){
-
+  vTaskSuspend(NULL);
 }
