@@ -33,7 +33,7 @@ TaskHandle_t grip_control_h;
 bool all_homed_flag = false;
 bool stepper_homed_ind_flag[STEPPER_NUM] = {false};
 bool new_pos_flag = false;
-bool grip_update = false;
+bool grip_update_flag = false;
 
 // Pins
 const int dir_pins[STEPPER_NUM] = { 4,5,6,7,17,18,8 };
@@ -204,7 +204,11 @@ void check_angles_t( void *pvParameters ) {
 }
 
 void grip_control_t( void *pvParameters ) {
-  
+  while(true){
+    if(grip_update_flag){
+      // logic to be implemented later  
+    }
+  }
 }
 
 void setup(){
