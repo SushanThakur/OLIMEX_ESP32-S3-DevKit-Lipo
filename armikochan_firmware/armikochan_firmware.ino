@@ -7,17 +7,15 @@
 #define BAUD 115200
 #define I2C_SDA 15
 #define I2C_SCL 16
-#define AS5600_CLK_SPEED 100000 // 100 kHz
+#define AS5600_CLK_SPEED 100000  // 100 kHz
 
 // TIME CONST
-#define DEBOUNCE_DELAY_HOME 100 // In Microseconds
+#define DEBOUNCE_DELAY_HOME 100  // In Microseconds
 #define REVERSE_INTERVAL 200  // In Miliseconds
 
-// PHYSICAL CONST
+// STEPPER PARAM
 #define STEPPER_NUM 7
 #define STEPS_PER_REV 800 
-
-// STEPPER PARAM
 #define STEPPER_MAX_SPEED 2000
 #define STEPPER_RUN_SPEED 1000
 #define STEPPER_ACEL 5000
@@ -279,5 +277,5 @@ void setup(){
 }
 
 void loop(){
-  vTaskSuspend(NULL);
+  vTaskSuspend(NULL);  // no use of this task
 }
