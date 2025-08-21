@@ -42,6 +42,7 @@ const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 const float max_shaft_angles[STEPPER_NUM] = {0.0};
 const float min_shaft_angles[STEPPER_NUM] = {0.0};
 const float reduction_ratios[STEPPER_NUM] = {0.0};
+const float default_position[STEPPER_NUM] = {0.0};
 
 // Changable Params
 float target_shaft_angles[STEPPER_NUM] = {0.0};
@@ -178,6 +179,9 @@ void serial_t( void *pvParameters ) {
       } 
       else if (read_string == "HOME") {
         all_homed_flag = false;
+      }
+      else if (read_string == "DEFAULT"){
+        // move steppers to default position
       }
     }
   }
