@@ -1,4 +1,4 @@
-// Used Libraries
+li// Used Libraries
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 #include <Wire.h>
@@ -82,7 +82,7 @@ inline int32_t fastAtoi(const char *str) {
 
 /*
   =====================
-    Helper Functions
+    Utility Functions
   =====================
 */
 void shaft_angles_to_steps() {
