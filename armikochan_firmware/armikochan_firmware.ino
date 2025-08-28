@@ -88,7 +88,7 @@ inline int32_t fastAtoi(const char *str) {
 void shaft_angles_to_steps() {
   // convert shaft angles to respective stepper steps
   for(int i=0; i<STEPPER_NUM; i++){
-    //
+    target_stepper_steps[i] = target_shaft_angles[i] * reduction_ratios[i] * STEPS_PER_REV;
   }
 }
 
