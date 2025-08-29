@@ -47,6 +47,7 @@ const float default_position[STEPPER_NUM] = {0.0};
 // Changable Params
 float target_shaft_angles[STEPPER_NUM] = {0.0};
 float target_stepper_steps[STEPPER_NUM] = {0.0};
+float target_stepper_angles[STEPPER_NUM] = {0.0};
 float currnet_shaft_angles[STEPPER_NUM] = {0.0};
 float current_stepper_angles[STEPPER_NUM] = {0.0};
 float feedback_stepper_angles[STEPPER_NUM] = {0.0};
@@ -88,7 +89,8 @@ inline int32_t fastAtoi(const char *str) {
 void shaft_angles_to_steps() {
   // convert shaft angles to respective stepper steps
   for(int i=0; i<STEPPER_NUM; i++){
-    target_stepper_steps[i] = target_shaft_angles[i] * reduction_ratios[i] * STEPS_PER_REV;
+    target_stepper_angles[i] = target_shaft_angles[i] * reduction_ratios[i];
+    target_stepper_steps[i] = target_stepper_angles[i] * STEPS_PER_REV;
   }
 }
 
