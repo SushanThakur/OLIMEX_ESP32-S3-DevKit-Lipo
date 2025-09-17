@@ -18,7 +18,7 @@
 #define STEPS_PER_REV 800 
 #define STEPPER_MAX_SPEED 2000
 #define STEPPER_RUN_SPEED 1000
-#define STEPPER_ACEL 5000
+#define STEPPER_ACEL 4000
 
 // Task Handlers
 TaskHandle_t serial_h;
