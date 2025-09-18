@@ -18,7 +18,13 @@
 #define STEPS_PER_REV 800 
 #define STEPPER_MAX_SPEED 2000
 #define STEPPER_RUN_SPEED 1000
-#define STEPPER_ACEL 4000
+#define STEPPER_ACEL 5000
+
+// GRIPPER PARAMS
+#define GRIPPER_DIR 35
+#define GRIPPER_STEP 34
+#define GRIPPER_FSR 41
+#define GRIPPER_HALL 40
 
 // Task Handlers
 TaskHandle_t serial_h;
@@ -41,7 +47,7 @@ const int hall_pins[STEPPER_NUM] = { 21,47,48,45,35,39,40 };
 // Fixed Params
 const float max_shaft_angles[STEPPER_NUM] = {0.0};
 const float min_shaft_angles[STEPPER_NUM] = {0.0};
-const float reduction_ratios[STEPPER_NUM] = {0.0};
+const float reduction_ratios[STEPPER_NUM] = { 0.0, 17.25405444, 17.25405444, 17.25405444, 17.25405444, 17.25405444, 1 };
 const float default_position[STEPPER_NUM] = {0.0};
 
 // Changable Params
