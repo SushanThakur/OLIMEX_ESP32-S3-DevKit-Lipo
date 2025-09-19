@@ -1,7 +1,7 @@
 // Used Libraries
 #include <AccelStepper.h>
 #include <MultiStepper.h>
-#include <Wire.h>
+#include <Wire.h>                // For I2C communication
 
 // ESP CONFIG
 #define BAUD 115200
