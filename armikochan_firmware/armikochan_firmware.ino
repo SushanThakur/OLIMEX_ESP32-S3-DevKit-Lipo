@@ -4,7 +4,7 @@
 #include <Wire.h>                // For I2C communication
 
 // ESP CONFIG
-#define BAUD 115200
+#define BAUD 115200		// To be increase later
 #define I2C_SDA 15
 #define I2C_SCL 16
 #define AS5600_CLK_SPEED 100000  // 100 kHz
