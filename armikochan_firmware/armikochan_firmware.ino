@@ -3,9 +3,10 @@
 #include <MultiStepper.h>
 #include <Wire.h>                // For I2C communication
 
-#define DEBUG 0
-#define WARN 0
-#define ERROR 0
+// Verbosity
+#define DEBUG 1
+#define WARN 1
+#define ERROR 1
 
 // ESP CONFIG
 #define BAUD 115200		// To be increase later
